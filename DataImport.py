@@ -106,21 +106,25 @@ def import_data(input_file, device='cpu'):
     # print(x)
     y = torch.from_numpy(input_df[0:size_train, 17:18].astype(float)).float().to(device)
 
-    return x, y
+    return data_split(x, y)
 
-    def test_train_validate(self, df_type):
-        train, validate, test = np.split(self.data.sample(frac=1), [int(.7 * len(self.data)), int(.9 * len(self.data))])
-        if df_type == 'TRAIN':
-            result = train
-        elif df_type == 'TEST':
-            result = test
-        elif df_type == 'VALIDATE':
-            result = validate
-        else:
-            print('invalid result type')
-        return result;
+def data_split(x, y):
+    n = len(y)
+    random_indices = torch.randperm(n)
+    num_train = int(n * 0.7)
+    num_val = int(n * 0.2)
+    num_test = n - num_train - num_val
+
+    x_train = x[random_indices[:num_train]]
+    y_train = y[random_indices[:num_train]]
+    x_val = x[random_indices[num_train:num_train + num_val]]
+    y_val = y[random_indices[num_train:num_train + num_val]]
+    x_test = x[random_indices[num_train + num_val:]]
+    y_test = y[random_indices[num_train + num_val:]]
+    return x_train, x_val, x_test, y_train, y_val, y_test
 
 if __name__ == '__main__':
+
     if len(sys.argv) < 2:
         print(f'Usage: python3 {sys.argv[0]} file [model]')
         sys.exit(-1)
