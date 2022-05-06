@@ -108,6 +108,18 @@ def import_data(input_file, device='cpu'):
 
     return x, y
 
+    def test_train_validate(self, df_type):
+        train, validate, test = np.split(self.data.sample(frac=1), [int(.7 * len(self.data)), int(.9 * len(self.data))])
+        if df_type == 'TRAIN':
+            result = train
+        elif df_type == 'TEST':
+            result = test
+        elif df_type == 'VALIDATE':
+            result = validate
+        else:
+            print('invalid result type')
+        return result;
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f'Usage: python3 {sys.argv[0]} file [model]')
