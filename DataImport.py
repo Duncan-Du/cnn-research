@@ -40,7 +40,7 @@ def get_device():
 def init_weights(m):
     print(m)
 
-def import_data(input_file, device='cpu'):
+def import_data(input_file, device='cpu', split=False):
     input_df = np.array((list(csv.reader(open(input_file, "r"))))[1:], dtype=object)
 
     size_train = len(input_df)
@@ -101,19 +101,25 @@ def import_data(input_file, device='cpu'):
 
     x = torch.Tensor(input_df[0:size_train, 4:17].astype(float)).float().to(device)
     # print(x)
-    x_shape = x.shape
-    x = x.reshape((1, x_shape[0], x_shape[1]))
-    # print(x)
     y = torch.from_numpy(input_df[0:size_train, 17:18].astype(float)).float().to(device)
 
-    return data_split(x, y)
+    if split:
+        x_train, x_val, x_test, y_train, y_val, y_test = data_split(x, y)
+        x_train = x_train.reshape((1, x_train.shape[0], x_train.shape[1]))
+        x_val = x_val.reshape((1, x_val.shape[0], x_val.shape[1]))
+        x_test = x_test.reshape((1, x_test.shape[0], x_test.shape[1]))
+        return x_train, x_val, x_test, y_train, y_val, y_test
+    else:
+        x = x.reshape((1, x.shape[0], x.shape[1]))
+        return x, y
+
+
 
 def data_split(x, y):
     n = len(y)
     random_indices = torch.randperm(n)
     num_train = int(n * 0.7)
     num_val = int(n * 0.2)
-    num_test = n - num_train - num_val
 
     x_train = x[random_indices[:num_train]]
     y_train = y[random_indices[:num_train]]
