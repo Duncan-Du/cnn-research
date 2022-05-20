@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 debug = False
 
@@ -39,6 +40,43 @@ def get_device():
 
 def init_weights(m):
     print(m)
+
+def parse_data(x:torch.Tensor, radius=5):
+    """
+    x: an n-by-d Tensor
+    """
+    n, d = x.shape
+    width = 2 * radius + 1
+
+    # fence-posting
+    left = x[- (radius - 0):]
+    curr = x[0]
+    right = x[0 + 1: 0 + 1 + radius]
+    entry = torch.vstack((torch.vstack((left, curr)), right)).reshape((1, 1, width, d))
+    result = entry
+
+    # front case
+    for i in range(1, radius):
+        left = torch.vstack((x[-(radius - i):], x[:i]))
+        curr = x[i: i + 1 + radius]
+        entry = torch.vstack((left, curr)).reshape((1, 1, width, d))
+        result = torch.vstack((result, entry))
+
+    # middle case
+    for i in tqdm(range(radius, n - radius)):
+        entry = x[i - radius: i + 1 + radius].reshape((1, 1, width, d))
+        result = torch.vstack((result, entry))
+
+    # end case
+    for i in range(n - radius, n):
+        left = x[i - radius : n]
+        right = x[: i + radius + 1 - n]
+        entry = torch.vstack((left, right)).reshape((1, 1, width, d))
+        result = torch.vstack((result, entry))
+
+    return result
+
+
 
 def import_data(input_file, device='cpu', split=False):
     input_df = np.array((list(csv.reader(open(input_file, "r"))))[1:], dtype=object)
@@ -103,15 +141,18 @@ def import_data(input_file, device='cpu', split=False):
     # print(x)
     y = torch.from_numpy(input_df[0:size_train, 17:18].astype(float)).float().to(device)
 
-    if split:
-        x_train, x_val, x_test, y_train, y_val, y_test = data_split(x, y)
-        x_train = x_train.reshape((1, x_train.shape[0], x_train.shape[1]))
-        x_val = x_val.reshape((1, x_val.shape[0], x_val.shape[1]))
-        x_test = x_test.reshape((1, x_test.shape[0], x_test.shape[1]))
-        return x_train, x_val, x_test, y_train, y_val, y_test
-    else:
-        x = x.reshape((1, x.shape[0], x.shape[1]))
-        return x, y
+    x = parse_data(x)
+    return x, y
+
+    # if split:
+    #     x_train, x_val, x_test, y_train, y_val, y_test = data_split(x, y)
+    #     x_train = x_train.reshape((1, x_train.shape[0], x_train.shape[1]))
+    #     x_val = x_val.reshape((1, x_val.shape[0], x_val.shape[1]))
+    #     x_test = x_test.reshape((1, x_test.shape[0], x_test.shape[1]))
+    #     return x_train, x_val, x_test, y_train, y_val, y_test
+    # else:
+    #     x = x.reshape((1, x.shape[0], x.shape[1]))
+    #     return x, y
 
 
 
@@ -137,8 +178,8 @@ if __name__ == '__main__':
 
     input_file = sys.argv[1]
     x, y = import_data(input_file)
-    print(x.shape)  # torch.Size([70322, 13]), torch.Size([1, 6, 13])
-    print(y.shape)  # torch.Size([70322, 1]), torch.Size([6, 1])
+    print(x.shape)  # torch.Size([70322, 11, 13])
+    print(y.shape)  # torch.Size([70322, 1])
     print(y[:10])
 
     exit(0)
