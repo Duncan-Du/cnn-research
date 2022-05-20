@@ -141,7 +141,7 @@ def import_data(input_file, device='cpu', split=False):
     # print(x)
     y = torch.from_numpy(input_df[0:size_train, 17:18].astype(float)).float().to(device)
 
-    x = parse_data(x)
+    x = parse_data(x, radius=2)
     return x, y
 
     # if split:
